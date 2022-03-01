@@ -25,10 +25,12 @@ from pygame.locals import *
 # Feel free to edit these constants to suit your requirements.
 FRAME_RATE = 60.0
 SCREEN_SIZE = (640, 480)
+LINE=0
+LINEtmp=0
 display_surface = pygame.display.set_mode(SCREEN_SIZE)
   
 # set the pygame window name
-pygame.display.set_caption('Image')
+pygame.display.set_caption('pixel based rendering')
   
 # create a surface object, image is drawn on it.
 image = pygame.image.load(r'./rec/maps/map1.png')
@@ -49,9 +51,29 @@ pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.init()
 pygame.font.init()
 
+def create_fonts(font_sizes_list):
+    "Creates different fonts with one list"
+    fonts = []
+    for size in font_sizes_list:
+        fonts.append(
+            pygame.font.SysFont("Arial", size))
+    return fonts
+def render(screen,fnt, what, color, where):
+    "Renders the fonts as passed from display_fps"
+    text_to_show = fnt.render(what, 0, pygame.Color(color))
+    screen.blit(text_to_show, where)
+fonts = create_fonts([32, 16, 14, 8])
+def display_fps(screen):
+    "Data that will be rendered and blitted in _display"
+    render(
+        screen,
+        fonts[0],
+        what=str(int(clock.get_fps())),
+        color="white",
+        where=(0, 0))
 if pygame_modules_have_loaded():
     game_screen = pygame.display.set_mode(SCREEN_SIZE)
-    pygame.display.set_caption('Test')
+    #pygame.display.set_caption('Test')
     clock = pygame.time.Clock()
 
     def declare_globals():
@@ -67,12 +89,15 @@ if pygame_modules_have_loaded():
         pass
 
     def handle_input(key_name):
+        global LINE
         # Add in code for input handling.
         # key_name provides the String name of the key that was pressed.
         if key_name in "up":
-            print("Up")
+            LINE-=8
+            print(LINE)
         elif key_name in "down":
-            print("Down")
+            LINE+=8
+            print(LINE)
         elif key_name in "left":
             print("Left")
         elif key_name in "right":
@@ -80,11 +105,28 @@ if pygame_modules_have_loaded():
         pass
 
     def update(screen, time):
-        global image
-        print(pygame.image.load("./rec/maps/map1.png"))
+        global image, LINE, LINEtmp
+        if not LINE == LINEtmp:
+            print("line has changed")
         display_surface.fill((70,70,70))
-        display_surface.blit(image,SCREEN_SIZE)
+        for x in range(640):
+            counter=0
+            for y in range(480):
+                if image.get_at((x,y-counter+LINE)) == (0,0,0,0):
+                    counter +=1
+                else:
+                    try:
+                        display_surface.set_at((x,y),image.get_at((x,y-counter+LINE)))
+                    except Exception as e:
+                        print("Error LINE most likeley overflowed/underflowed, expection attached")
+                        print(e)
+                    counter += 1
+                #pygame.display.update()
+                #import time
+                #time.sleep(0.1)
         #RESET FOR UPDATE
+        LINEtmp=LINE
+        display_fps(screen)
         pygame.display.update()
 
     # Add additional methods here.
