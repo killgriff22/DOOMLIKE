@@ -81,17 +81,9 @@ if pygame_modules_have_loaded():
 
     def update(screen, time):
         global image
-        dump=[]
-        with open("HUD-map.dump","r") as f:
-            for color in f.readlines():
-                color = color.strip("(").split(")")[0].split(", ")
-                dump.append((int(color[0]), int(color[1]), int(color[2])))#, int(color[3])))
-        for y in range(640):
-            for x in range(480):
-                #print((x,y), dump[x*y])
-                #if x == 10:
-                #    exit()
-                display_surface.set_at((x,y), dump[x*y])
+        print(pygame.image.load("./rec/maps/map1.png"))
+        display_surface.fill((70,70,70))
+        display_surface.blit(image,SCREEN_SIZE)
         #RESET FOR UPDATE
         pygame.display.update()
 
