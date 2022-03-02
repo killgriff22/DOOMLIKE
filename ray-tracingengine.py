@@ -105,9 +105,8 @@ if pygame_modules_have_loaded():
         pass
 
     def update(screen, time):
-            RENDER=pygame.image.load("./rec/renders/render.png")
-            screen.blit(RENDER,0,0)
-            pygame.display.update()
+        
+        pygame.display.update()
 
     # Add additional methods here.
 
