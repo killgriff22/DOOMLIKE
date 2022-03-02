@@ -105,37 +105,9 @@ if pygame_modules_have_loaded():
         pass
 
     def update(screen, time):
-        global image, LINE, LINEtmp
-        if not LINE == LINEtmp:
-            print("line has changed")
-        display_surface.fill((70,70,70))
-        for x in range(640):
-            #try:
-                #print(LINE)
-                #display_surface.set_at((x,LINE),image.get_at((x,y-counter+LINE)))
-            #except Exception as e:
-                #pass
-            counter=0
-            
-            for y in range(480):
-                if image.get_at((x,y)) == (0,0,0,0):
-                    counter +=1
-                else:
-                    try:
-                        display_surface.set_at((x,y),image.get_at((x,y-counter+LINE)))
-                    except Exception as e:
-                        print("Error LINE most likeley overflowed/underflowed, expection attached")
-                        print(e)
-                    counter += 1
-                #pygame.display.update()
-                #import time
-                #time.sleep(0.1)
-        #RESET FOR UPDATE
-        LINEtmp=LINE
-        #display_fps(screen)
-        
-        #display_surface.blit(image,(0,0))
-        pygame.display.update()
+            RENDER=pygame.image.load("./rec/renders/render.png")
+            screen.blit(RENDER,0,0)
+            pygame.display.update()
 
     # Add additional methods here.
 
