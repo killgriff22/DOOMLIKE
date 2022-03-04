@@ -1,137 +1,186 @@
-import os
-#install required packages
-packages = ["pygame"]
-keys = [
-    "up",
-    "left",
-    "right",
-    "down"
-]
-for pkg in packages:
-    os.system("pip3 install {}".format(pkg))
-class colors:
-    white = (255, 255, 255)
-    black = (0, 0, 0)
-"""This module contains all of the necessary PyGame components for
-running a simplified game loop.
-Use it for test cases on PyGame-related code.
-"""
-import sys
+######################################
+#           THIS CODE IS STOLEN AND IS A PLACEHOLDER
+####        I WILL BE MAKING MY OWN RAYCASTER
+#    Simple raycasting with PyGame
+#
+#                 by
+#
+#          Code Monkey King
+#
+######################################
+
+# packages
 import pygame
-from pygame.locals import *
-# Import additional modules here.
+import sys
+import math
 
+# global constants
+SCREEN_HEIGHT = 480
+SCREEN_WIDTH = SCREEN_HEIGHT * 2
+MAP_SIZE = 8
+TILE_SIZE = int((SCREEN_WIDTH / 2) / MAP_SIZE)
+MAX_DEPTH = int(MAP_SIZE * TILE_SIZE)
+FOV = math.pi / 3
+HALF_FOV = FOV / 2
+CASTED_RAYS = 120
+STEP_ANGLE = FOV / CASTED_RAYS
 
-# Feel free to edit these constants to suit your requirements.
-FRAME_RATE = 60.0
-SCREEN_SIZE = (640, 480)
-LINE=0
-LINEtmp=0
-display_surface = pygame.display.set_mode(SCREEN_SIZE)
-  
-# set the pygame window name
-pygame.display.set_caption('pixel based rendering')
-  
-# create a surface object, image is drawn on it.
-image = pygame.image.load(r'./rec/maps/map1.png')
+# global variables
+player_x = (SCREEN_WIDTH / 2) / 2
+player_y = (SCREEN_WIDTH / 2) / 2
+player_angle = math.pi
 
-def pygame_modules_have_loaded():
-    success = True
+# map
+MAP = (
+    '########'
+    '# #    #'
+    '# #  ###'
+    '#      #'
+    '#      #'
+    '#  ##  #'
+    '#   #  #'
+    '########'
+)
 
-    if not pygame.display.get_init:
-        success = False
-    if not pygame.font.get_init():
-        success = False
-    if not pygame.mixer.get_init():
-        success = False
-
-    return success
-
-pygame.mixer.pre_init(44100, -16, 2, 512)
+# init pygame
 pygame.init()
-pygame.font.init()
 
-def create_fonts(font_sizes_list):
-    "Creates different fonts with one list"
-    fonts = []
-    for size in font_sizes_list:
-        fonts.append(
-            pygame.font.SysFont("Arial", size))
-    return fonts
-def render(screen,fnt, what, color, where):
-    "Renders the fonts as passed from display_fps"
-    text_to_show = fnt.render(what, 0, pygame.Color(color))
-    screen.blit(text_to_show, where)
-fonts = create_fonts([32, 16, 14, 8])
-def display_fps(screen):
-    "Data that will be rendered and blitted in _display"
-    render(
-        screen,
-        fonts[0],
-        what=str(int(clock.get_fps())),
-        color="white",
-        where=(0, 0))
-if pygame_modules_have_loaded():
-    game_screen = pygame.display.set_mode(SCREEN_SIZE)
-    #pygame.display.set_caption('Test')
-    clock = pygame.time.Clock()
+# create game window
+win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-    def declare_globals():
-        # The class(es) that will be tested should be declared and initialized
-        # here with the global keyword.
-        # Yes, globals are evil, but for a confined test script they will make
-        # everything much easier. This way, you can access the class(es) from
-        # all three of the methods provided below.
-        pass
+# set window title
+pygame.display.set_caption('Raycasting')
 
-    def prepare_test():
-        # Add in any code that needs to be run before the game loop starts.
-        pass
+# init timer
+clock = pygame.time.Clock()
 
-    def handle_input(key_name):
-        global LINE
-        # Add in code for input handling.
-        # key_name provides the String name of the key that was pressed.
-        if key_name in "up":
-            LINE-=1
-            print(LINE)
-        elif key_name in "down":
-            LINE+=1
-            print(LINE)
-        elif key_name in "left":
-            print("Left")
-        elif key_name in "right":
-            print("Right")
-        pass
+# draw map
+def draw_map():
+    # loop over map rows
+    for row in range(8):
+        # loop over map columns
+        for col in range(8):
+            # calculate square index
+            square = row * MAP_SIZE + col
+            
+            # draw map in the game window
+            pygame.draw.rect(
+                win,
+                (200, 200, 200) if MAP[square] == '#' else (100, 100, 100),
+                (col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE - 2, TILE_SIZE - 2)
+            )
 
-    def update(screen, time):
-        
-        pygame.display.update()
+    # draw player on 2D board
+    pygame.draw.circle(win, (255, 0, 0), (int(player_x), int(player_y)), 8)
+    
+    # draw player direction
+    pygame.draw.line(win, (0, 255, 0), (player_x, player_y),
+                                       (player_x - math.sin(player_angle) * 50,
+                                        player_y + math.cos(player_angle) * 50), 3)
+    
+    # draw player FOV
+    pygame.draw.line(win, (0, 255, 0), (player_x, player_y),
+                                       (player_x - math.sin(player_angle - HALF_FOV) * 50,
+                                        player_y + math.cos(player_angle - HALF_FOV) * 50), 3)
+    
+    pygame.draw.line(win, (0, 255, 0), (player_x, player_y),
+                                       (player_x - math.sin(player_angle + HALF_FOV) * 50,
+                                        player_y + math.cos(player_angle + HALF_FOV) * 50), 3)
 
-    # Add additional methods here.
+# raycasting algorithm
+def cast_rays():
+    # define left most angle of FOV
+    start_angle = player_angle - HALF_FOV
+    
+    # loop over casted rays
+    for ray in range(CASTED_RAYS):
+        # cast ray step by step
+        for depth in range(MAX_DEPTH):
+            # get ray target coordinates
+            target_x = player_x - math.sin(start_angle) * depth
+            target_y = player_y + math.cos(start_angle) * depth
+            
+            # covert target X, Y coordinate to map col, row
+            col = int(target_x / TILE_SIZE)
+            row = int(target_y / TILE_SIZE)
+            
+            # calculate map square index
+            square = row * MAP_SIZE + col
 
-    def main():
-        declare_globals()
-        prepare_test()
+            # ray hits the condition
+            if MAP[square] == '#':
+                # highlight wall that has been hit by a casted ray
+                pygame.draw.rect(win, (0, 255, 0), (col * TILE_SIZE,
+                                                    row * TILE_SIZE,
+                                                    TILE_SIZE - 2,
+                                                    TILE_SIZE - 2))
 
-        while True:
-            for event in pygame.event.get():
-                if event.type == QUIT:
-                    pygame.quit()
-                    sys.exit()
+                # draw casted ray
+                pygame.draw.line(win, (255, 255, 0), (player_x, player_y), (target_x, target_y))
+                break
 
-                if event.type == KEYDOWN:
-                    key_name = pygame.key.name(event.key)
-                    handle_input(key_name)
+        # increment angle by a single step
+        start_angle += STEP_ANGLE
 
-            milliseconds = clock.tick(FRAME_RATE)
-            seconds = milliseconds / 1000.0
-            update(game_screen, seconds)
+# game loop
+while True:
+    # escape condition
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit(0)
+    
+    # update background
+    pygame.draw.rect(win, (0, 0, 0), (0, 0, SCREEN_HEIGHT, SCREEN_HEIGHT))
+    
+    # draw 2D map
+    draw_map()
+    
+    # apply raycasting
+    cast_rays()
+    
+    # get user input
+    keys = pygame.key.get_pressed()
+    
+    # handle user input
+    if keys[pygame.K_LEFT]: player_angle -= 0.1
+    if keys[pygame.K_RIGHT]: player_angle += 0.1
+    if keys[pygame.K_UP]:
+        player_x += -math.sin(player_angle) * 5
+        player_y += math.cos(player_angle) * 5
+    if keys[pygame.K_DOWN]:
+        player_x -= -math.sin(player_angle) * 5
+        player_y -= math.cos(player_angle) * 5
 
-            sleep_time = (1000.0 / FRAME_RATE) - milliseconds
-            if sleep_time > 0.0:
-                pygame.time.wait(int(sleep_time))
-            else:
-                pygame.time.wait(1)
+    # update display
+    pygame.display.flip()
+    
+    # set FPS
+    clock.tick(30)
+    
+    
 
-    main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
