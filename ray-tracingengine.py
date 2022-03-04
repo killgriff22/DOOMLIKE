@@ -24,6 +24,7 @@ FOV = math.pi / 3
 HALF_FOV = FOV / 2
 CASTED_RAYS = 120
 STEP_ANGLE = FOV / CASTED_RAYS
+SCALE = (SCREEN_WIDTH / 2) / CASTED_RAYS
 
 # global variables
 player_x = (SCREEN_WIDTH / 2) / 2
@@ -117,10 +118,32 @@ def cast_rays():
 
                 # draw casted ray
                 pygame.draw.line(win, (255, 255, 0), (player_x, player_y), (target_x, target_y))
+                
+                # wall shading
+                color = 255 / (1 + depth * depth * 0.0001)
+                
+                # fix fish eye effect
+                depth *= math.cos(player_angle - start_angle)
+                                
+                # calculate wall height
+                wall_height = 21000 / (depth + 0.0001)
+                
+                # fix stuck at the wall
+                if wall_height > SCREEN_HEIGHT: wall_height = SCREEN_HEIGHT 
+                
+                # draw 3D projection (rectangle by rectangle...)
+                pygame.draw.rect(win, (color, color, color), (
+                    SCREEN_HEIGHT + ray * SCALE,
+                    (SCREEN_HEIGHT / 2) - wall_height / 2,
+                     SCALE, wall_height))
+                
                 break
 
         # increment angle by a single step
         start_angle += STEP_ANGLE
+
+# moving direction
+forward = True
 
 # game loop
 while True:
@@ -130,8 +153,28 @@ while True:
             pygame.quit()
             sys.exit(0)
     
-    # update background
+    # covert target X, Y coordinate to map col, row
+    col = int(player_x / TILE_SIZE)
+    row = int(player_y / TILE_SIZE)
+           
+    # calculate map square index
+    square = row * MAP_SIZE + col
+
+    # player hits the wall (collision detection)
+    if MAP[square] == '#':
+        if forward:
+            player_x -= -math.sin(player_angle) * 5
+            player_y -= math.cos(player_angle) * 5
+        else:
+            player_x += -math.sin(player_angle) * 5
+            player_y += math.cos(player_angle) * 5
+    
+    # update 2D background
     pygame.draw.rect(win, (0, 0, 0), (0, 0, SCREEN_HEIGHT, SCREEN_HEIGHT))
+    
+    # update 3D background
+    pygame.draw.rect(win, (100, 100, 100), (480, SCREEN_HEIGHT / 2, SCREEN_HEIGHT, SCREEN_HEIGHT))
+    pygame.draw.rect(win, (200, 200, 200), (480, -SCREEN_HEIGHT / 2, SCREEN_HEIGHT, SCREEN_HEIGHT))
     
     # draw 2D map
     draw_map()
@@ -146,21 +189,33 @@ while True:
     if keys[pygame.K_LEFT]: player_angle -= 0.1
     if keys[pygame.K_RIGHT]: player_angle += 0.1
     if keys[pygame.K_UP]:
+        forward = True
         player_x += -math.sin(player_angle) * 5
         player_y += math.cos(player_angle) * 5
     if keys[pygame.K_DOWN]:
+        forward = False
         player_x -= -math.sin(player_angle) * 5
         player_y -= math.cos(player_angle) * 5
+
+    # set FPS
+    clock.tick(30)
+
+    # display FPS
+    fps = str(int(clock.get_fps()))
+    
+    # pick up the font
+    font = pygame.font.SysFont('Monospace Regular', 30)
+    
+    # create font surface
+    fps_surface = font.render(fps, False, (255, 255, 255))
+    
+    # print FPS to screen
+    win.blit(fps_surface, (480, 0))
 
     # update display
     pygame.display.flip()
     
-    # set FPS
-    clock.tick(30)
     
-    
-
-
 
 
 
